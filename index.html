@@ -1,12 +1,94 @@
 <!DOCTYPE html>
-<html>
-	<head>
-		<title>A title</title>
-	</head>
+<html lang="en">
 
-	<body>
-		<p>Tag Na ri ma</p>
-		<img src="https://images.unsplash.com/photo-1518020382113-a7e8fc38eac9?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1260&q=80">	
-	</body>
+<head>
+	<title>three.js webgl - geometry - cube</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<style>
+		body {
+			margin: 0px;
+			background-color: #000000;
+			overflow: hidden;
+		}
+	</style>
+</head>
+
+<body>
+
+	<script src="js/three.js"></script>
+
+	<script>
+		var aspect, camera, scene, renderer;
+		var D;
+		var mesh;
+
+		init();
+
+		function init() {
+
+			aspect = window.innerWidth / window.innerHeight;
+			D = 1;
+
+			camera = new THREE.OrthographicCamera(-D * aspect, D * aspect, D, -D, 1, 1000);
+
+			scene = new THREE.Scene();
+
+			var geometry = new THREE.BoxBufferGeometry(1, 1, 1);
+			var material = new THREE.MeshPhongMaterial({
+				ambient: 0x555555,
+				color: 0x555555,
+				specular: 0xffffff,
+				shininess: 10,
+				shading: THREE.SmoothShading
+			});
+
+			var cube = new THREE.Mesh(geometry, material);
+			renderer = new THREE.WebGLRenderer({
+				antialias: true
+			});
+			scene.add(cube);
+
+			scene.add(new THREE.AmbientLight(0x4000ff));
+
+			light = new THREE.PointLight(0xffffff, 6, 40);
+
+			light.position.set(10, 20, 55);
+
+			scene.add(light)
+
+			renderer.setPixelRatio(window.devicePixelRatio);
+			renderer.setSize(window.innerWidth, window.innerHeight);
+
+			camera.position.set(20, 20, 20)
+			camera.lookAt(scene.position)
+
+			document.body.appendChild(renderer.domElement);
+
+			window.addEventListener('resize', onWindowResize, false);
+
+			var animate = function () {
+
+				requestAnimationFrame(animate);
+				cube.rotation.y += 0.001;
+
+				renderer.render(scene, camera);
+
+			};
+
+			animate();
+		}
+
+		function onWindowResize() {
+
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+
+			renderer.setSize(window.innerWidth, window.innerHeight);
+
+		}
+	</script>
+
+</body>
 
 </html>
