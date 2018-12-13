@@ -39,7 +39,7 @@
 				ambient: 0x555555,
 				color: 0x555555,
 				specular: 0xffffff,
-				shininess: 10,
+				shininess: 1,
 				shading: THREE.SmoothShading
 			});
 
@@ -51,7 +51,7 @@
 
 			scene.add(new THREE.AmbientLight(0x4000ff));
 
-			light = new THREE.PointLight(0xffffff, 6, 40);
+			light = new THREE.PointLight(0x3332dd, 6, 40);
 
 			light.position.set(10, 20, 55);
 
@@ -70,7 +70,8 @@
 			var animate = function () {
 
 				requestAnimationFrame(animate);
-				cube.rotation.y += 0.001;
+				cube.rotation.x += 0.03;
+				cube.rotation.y += 0.02;
 
 				renderer.render(scene, camera);
 
