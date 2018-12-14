@@ -19,16 +19,16 @@
 	<script src="js/three.js"></script>
 	<script type="text/javascript" src="http://livejs.com/live.js"></script>
 	<script>
-		var aspect, camera, scene, renderer, cube;
+		var aspect, camera, scene, renderer, cube, cylinder;
 		var D;
 		var mesh;
 		var mouse;
+		var baseposy;
 
 		init();
 		animate();
 
 		function init() {
-
 			aspect = window.innerWidth / window.innerHeight;
 			D = 1;
 
@@ -52,6 +52,19 @@
 			scene.add(cube);
 			cube.position.set(0, 0, -10);
 
+			var geometryCylinder = new THREE.CylinderGeometry(5.77, 5.77, 40, 3);
+			var material = new THREE.MeshPhongMaterial({
+				ambient: 0x444444,
+				color: 0x444444,
+				specular: 0xffffff,
+				shininess: 1,
+				shading: THREE.SmoothShading
+			});
+			cylinder = new THREE.Mesh(geometryCylinder, material);
+			scene.add(cylinder);
+			cylinder.position.set(0, 2.2, -10, 1);
+			baseposy = cylinder.position.y;
+
 			scene.add(new THREE.AmbientLight(0x4000ff));
 
 			light = new THREE.PointLight(0x3332dd, 6, 40);
@@ -69,7 +82,7 @@
 			document.body.appendChild(renderer.domElement);
 
 			window.addEventListener('resize', onWindowResize, false);
-			document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+			document.addEventListener('mousemove', onDocumentMouseMove, false);
 
 			mouse = new THREE.Vector2();
 
@@ -85,19 +98,25 @@
 
 		}
 
-		function onDocumentMouseMove( event ) {
-				event.preventDefault();
-				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-				console.log(mouse.x);
+		function onDocumentMouseMove(event) {
+			event.preventDefault();
+			mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+			mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+			console.log(mouse.y);
 		}
 
 		function animate() {
 			requestAnimationFrame(animate);
-			cube.rotation.x = mouse.y;
+			cube.rotation.x = mouse.y + (mouse.y * 0.578);
+			cube.rotation.z = mouse.y + (mouse.y * 0.578);
+			cylinder.rotation.x = mouse.y + (mouse.y * 0.578)+ 1.578;
+			cylinder.rotation.z = mouse.y + (mouse.y * 0.578);
+			cylinder.position.y = baseposy + (mouse.y + (mouse.y * 0.578) * 3)
+			console.log(cube.rotation.x);
+			// cube.rotation.x = mouse.y;
+			// console.log(cube.rotation.x);
 			renderer.render(scene, camera);
 		}
-
 	</script>
 
 </body>
