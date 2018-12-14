@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-	<title>👹👹👹👹👹👹👹👹👹👹👹👹👹👹👹👹👹👹</title>
+	<title>👹</title>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 	<style>
@@ -17,24 +17,26 @@
 <body>
 
 	<script src="js/three.js"></script>
-
+	<script type="text/javascript" src="http://livejs.com/live.js"></script>
 	<script>
-		var aspect, camera, scene, renderer;
+		var aspect, camera, scene, renderer, cube;
 		var D;
 		var mesh;
+		var mouse;
 
 		init();
+		animate();
 
 		function init() {
 
 			aspect = window.innerWidth / window.innerHeight;
 			D = 1;
 
-			camera = new THREE.OrthographicCamera(-D * aspect, D * aspect, D, -D, 1, 1000);
+			camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
 			scene = new THREE.Scene();
 
-			var geometry = new THREE.BoxBufferGeometry(1, 1, 1);
+			var geometry = new THREE.BoxBufferGeometry(10, 10, 40);
 			var material = new THREE.MeshPhongMaterial({
 				ambient: 0x555555,
 				color: 0x555555,
@@ -43,11 +45,12 @@
 				shading: THREE.SmoothShading
 			});
 
-			var cube = new THREE.Mesh(geometry, material);
+			cube = new THREE.Mesh(geometry, material);
 			renderer = new THREE.WebGLRenderer({
 				antialias: true
 			});
 			scene.add(cube);
+			cube.position.set(0, 0, -10);
 
 			scene.add(new THREE.AmbientLight(0x4000ff));
 
@@ -60,22 +63,15 @@
 			renderer.setPixelRatio(window.devicePixelRatio);
 			renderer.setSize(window.innerWidth, window.innerHeight);
 
-			camera.position.set(20, 20, 20)
+			camera.position.set(0, 0, 30)
 			camera.lookAt(scene.position)
 
 			document.body.appendChild(renderer.domElement);
 
 			window.addEventListener('resize', onWindowResize, false);
+			document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 
-			var animate = function () {
-
-				requestAnimationFrame(animate);
-				cube.rotation.x += 0.03;
-				cube.rotation.y += 0.02;
-
-				renderer.render(scene, camera);
-
-			};
+			mouse = new THREE.Vector2();
 
 			animate();
 		}
@@ -88,6 +84,20 @@
 			renderer.setSize(window.innerWidth, window.innerHeight);
 
 		}
+
+		function onDocumentMouseMove( event ) {
+				event.preventDefault();
+				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+				console.log(mouse.x);
+		}
+
+		function animate() {
+			requestAnimationFrame(animate);
+			cube.rotation.x = mouse.y;
+			renderer.render(scene, camera);
+		}
+
 	</script>
 
 </body>
