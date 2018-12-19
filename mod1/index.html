@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>👹</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<style>
+		body {
+			margin: 0px;
+			background-color: #000000;
+			overflow: hidden;
+		}
+	</style>
+</head>
+
+<body>
+	<script type="x-shader/x-vertex" id="vertexshader">
+		void main() {
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+		}
+
+	</script>
+
+	<script type="x-shader/x-fragment" id="fragmentshader">
+		void main() {
+			gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);
+		}
+	</script>
+
+	<script src="../js/three.js"></script>
+	<script type="text/javascript" src="http://livejs.com/live.js"></script>
+	<script>
+		var aspect, camera, scene, renderer, plane, cylinder;
+		var D;
+		var mesh;
+		var mouse;
+		var baseposy;
+
+		init();
+		animate();
+
+		function init() {
+			aspect = window.innerWidth / window.innerHeight;
+			D = 1;
+
+			camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+			scene = new THREE.Scene();
+
+			var vertex;
+			var color = new THREE.Color();
+			var geometry = new THREE.PlaneBufferGeometry(10, 10, 40);
+			// var geometry = new THREE.SphereBufferGeometry( 5, 32, 32 );
+			// geometry.addAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
+
+			// var material = new THREE.ShaderMaterial({
+			// 	vertexShader: document.getElementById('vertexshader').textContent,
+			// 	fragmentShader: document.getElementById('fragmentshader').textContent
+			// });
+
+			var material = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
+
+			sphereMesh = new THREE.Mesh(geometry, material);
+			renderer = new THREE.WebGLRenderer();
+			scene.add(sphereMesh);
+			sphereMesh.position.set(0, 0, -20);
+
+			scene.add(new THREE.AmbientLight(0x4000ff));
+
+			light = new THREE.PointLight(0x3332dd, 6, 40);
+
+			light.position.set(10, 20, 55);
+
+			scene.add(light)
+
+			renderer.setPixelRatio(window.devicePixelRatio);
+			renderer.setSize(window.innerWidth, window.innerHeight);
+
+			camera.position.set(0, 0, 30)
+			camera.lookAt(scene.position)
+
+			document.body.appendChild(renderer.domElement);
+
+			window.addEventListener('resize', onWindowResize, false);
+			document.addEventListener('mousemove', onDocumentMouseMove, false);
+
+			mouse = new THREE.Vector2();
+
+			animate();
+		}
+
+		function onWindowResize() {
+
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+
+			renderer.setSize(window.innerWidth, window.innerHeight);
+
+		}
+
+		function onDocumentMouseMove(event) {
+			event.preventDefault();
+			mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+			mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+		}
+
+		function animate() {
+			requestAnimationFrame(animate);
+			sphereMesh.rotation.x = mouse.y + (mouse.y * 0.578);
+			sphereMesh.rotation.z = mouse.y + (mouse.y * 0.578);
+			// plane.rotation.x = mouse.y;
+			// console.log(plane.rotation.x);
+			renderer.render(scene, camera);
+		}
+	</script>
+
+</body>
+
+</html>
