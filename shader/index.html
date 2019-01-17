@@ -20,48 +20,59 @@
         const float MAX_DIST = 100.0;
         const float EPSILON = 0.0001;
 
+        float opUnion( float d1, float d2 ) {  return(min(d1,d2)); }
+
+        float sdRoundCone( in vec3 p, in float r1, float r2, float h )
+        {
+            vec2 q = vec2( length(p.xz), p.y );
+            
+            float b = (r1-r2)/h;
+            float a = sqrt(1.0-b*b);
+            float k = dot(q,vec2(-b,a));
+            
+            if( k < 0.0 ) return length(q) - r1;
+            if( k > a*h ) return length(q-vec2(0.0,h)) - r2;
+                
+            return dot(q, vec2(a,b) ) - r1;
+        }
+
         float sphereSDF(vec3 samplePoint) {
-            return length(samplePoint) - 0.5;
+            return length(samplePoint) - 0.3;
         }
 
-        float sceneSDF(vec3 p) {
+        vec2 map(vec3 p) {
+            vec2 ret;
+            mat3 rotTest;
+            rotTest[0] = vec3(cos(radians(u_time)), -sin(radians(u_time)), 0);
+            rotTest[1] = vec3(sin(radians(u_time)), cos(radians(u_time)), 0);
+            rotTest[2] = vec3(0, 0, 1);
             float displacement = sin(2.5 * p.x * u_time) * sin(2.5 * p.y * u_time) * sin(5.0 * p.z * u_mouse.y * 0.001) * 0.25;
-            float sphere = sphereSDF(p);
-            return sphere + displacement;
+            vec2 sphere = vec2(sphereSDF(p - vec3(0, 0.02, 0)), 0.25);
+            vec2 cone = vec2(sdRoundCone(rotTest * p, 0.2, 0.2, 0.4), 0.5);
+            ret.x = opUnion(sphere.x, cone.x) + displacement;
+            if (sphere.x < cone.x)
+                ret.y = sphere.y;
+            else
+                ret.y = cone.y;
+            return ret;
         }
 
-        /**
-        * Using the gradient of the SDF, estimate the normal on the surface at point p.
-        */
         vec3 estimateNormal(vec3 p) {
+            vec2 v1 = map(vec3(p.x + EPSILON, p.y, p.z)) - map(vec3(p.x - EPSILON, p.y, p.z));
+            vec2 v2 = map(vec3(p.x, p.y + EPSILON, p.z)) - map(vec3(p.x, p.y - EPSILON, p.z));
+            vec2 v3 = map(vec3(p.x, p.y, p.z  + EPSILON)) - map(vec3(p.x, p.y, p.z - EPSILON));
             return normalize(vec3(
-                sceneSDF(vec3(p.x + EPSILON, p.y, p.z)) - sceneSDF(vec3(p.x - EPSILON, p.y, p.z)),
-                sceneSDF(vec3(p.x, p.y + EPSILON, p.z)) - sceneSDF(vec3(p.x, p.y - EPSILON, p.z)),
-                sceneSDF(vec3(p.x, p.y, p.z  + EPSILON)) - sceneSDF(vec3(p.x, p.y, p.z - EPSILON))
+                v1.x,
+                v2.x,
+                v3.x
             ));
         }
 
-        /**
-        * Lighting contribution of a single point light source via Phong illumination.
-        * 
-        * The vec3 returned is the RGB color of the light's contribution.
-        *
-        * k_a: Ambient color
-        * k_d: Diffuse color
-        * k_s: Specular color
-        * alpha: Shininess coefficient
-        * p: position of point being lit
-        * eye: the position of the camera
-        * lightPos: the position of the light
-        * lightIntensity: color/intensity of the light
-        *
-        * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
-        */
-        vec3 phongContribForLight(vec3 k_d, vec3 k_s, float alpha, vec3 p, vec3 eye,
+        vec3 phongContribForLight(vec3 k_d, vec3 k_s, float alpha, vec3 p, vec3 ro,
                                 vec3 lightPos, vec3 lightIntensity) {
             vec3 N = estimateNormal(p);
             vec3 L = normalize(lightPos - p);
-            vec3 V = normalize(eye - p);
+            vec3 V = normalize(ro - p);
             vec3 R = normalize(reflect(-L, N));
             
             float dotLN = dot(L, N);
@@ -80,7 +91,7 @@
             return lightIntensity * (k_d * dotLN + k_s * pow(dotRV, alpha));
         }
 
-        vec3 phongIllumination(vec3 k_a, vec3 k_d, vec3 k_s, float alpha, vec3 p, vec3 eye) {
+        vec3 phongIllumination(vec3 k_a, vec3 k_d, vec3 k_s, float alpha, vec3 p, vec3 ro) {
             const vec3 ambientLight = 0.5 * vec3(1.0, 1.0, 1.0);
             vec3 color = ambientLight * k_a;
             
@@ -89,18 +100,23 @@
                                 4.0 * cos(u_time));
             vec3 light1Intensity = vec3(0.9, 0.9, 0.9);
             
-            color += phongContribForLight(k_d, k_s, alpha, p, eye,
+            color += phongContribForLight(k_d, k_s, alpha, p, ro,
                                         light1Pos,
                                         light1Intensity);
             
             return color;
         }
 
-        float shortestDistanceToSurface(vec3 eye, vec3 marchingDirection, float start, float end) {
+        float shortestDistanceToSurface(vec3 ro, vec3 marchingDirection, float start, float end) {
             float depth = start;
             for (int i = 0; i < MAX_MARCHING_STEPS; i++) {
-                float dist = sceneSDF(eye + depth * marchingDirection);
+                vec2 p = map(ro + depth * marchingDirection);
+                float dist = p.x;
                 if (dist < EPSILON) {
+                    if (p.y <= 0.25)
+                        gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);
+                    else if (p.y <= 0.5)
+                        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
                     return depth;
                 }
                 depth += dist;
@@ -120,26 +136,24 @@
         void main()
         {
             vec3 dir = rayDirection(45.0, u_resolution.xy, gl_FragCoord.xy);
-            vec3 eye = vec3(0.0, 0.0, 5.0);
-            float dist = shortestDistanceToSurface(eye, dir, MIN_DIST, MAX_DIST);
+            vec3 ro = vec3(0.0, 0.0, 5.0);
+            float dist = shortestDistanceToSurface(ro, dir, MIN_DIST, MAX_DIST);
             
             if (dist > MAX_DIST - EPSILON) {
-                // Didn't hit anything
                 gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
                 return;
             }
-            
-            // The closest point on the surface to the eyepoint along the view ray
-            vec3 p = eye + dist * dir;
-            
-            vec3 K_a = vec3(0.2, 0.2, 0.2);
-            vec3 K_d = vec3(1.0, 1.0, 1.0);
-            vec3 K_s = vec3(0.75, 0.75, 0.75);
-            float shininess = 10.0;
-            
-            vec3 color = phongIllumination(K_a, K_d, K_s, shininess, p, eye);
-            
-            gl_FragColor = vec4(color, 1.0);
+            //vec3 p = ro + dist * dir;
+            //vec3 K_a;
+            //vec3 K_d;
+            //vec3 K_s;
+            //float shininess;
+            //K_a = vec3(0.2, 0.2, 0.2);
+            //K_d = vec3(1.0, 1.0, 1.0);
+            //K_s = vec3(0.75, 0.75, 0.75);
+            //shininess = 10.0;
+            //vec3 color = phongIllumination(K_a, K_d, K_s, shininess, p, ro);
+            //gl_FragColor = vec4(color, 1.0);
         }
 
     </script>
