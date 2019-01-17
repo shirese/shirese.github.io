@@ -3,7 +3,7 @@
 <body>
     <div id="container"></div>
     <script src="../js/three.js"></script>
-
+    <script src="../js/OrbitControl.js"></script>
     <script id="vertexShader" type="x-shader/x-vertex">
         void main() {
             gl_Position = vec4( position, 1.0 );
@@ -47,8 +47,8 @@
             rotTest[1] = vec3(sin(radians(u_time)), cos(radians(u_time)), 0);
             rotTest[2] = vec3(0, 0, 1);
             float displacement = sin(2.5 * p.x * u_time) * sin(2.5 * p.y * u_time) * sin(5.0 * p.z * u_mouse.y * 0.001) * 0.25;
-            vec2 sphere = vec2(sphereSDF(p - vec3(0, 0.02, 0)), 0.25);
-            vec2 cone = vec2(sdRoundCone(rotTest * p, 0.2, 0.2, 0.4), 0.5);
+            vec2 sphere = vec2(sphereSDF(p + vec3(0, 0.1, 0)), 0.25);
+            vec2 cone = vec2(sdRoundCone(rotTest * p, 0.25, 0.25, 0.25), 0.5);
             ret.x = opUnion(sphere.x, cone.x) + displacement;
             if (sphere.x < cone.x)
                 ret.y = sphere.y;
@@ -135,7 +135,8 @@
 
         void main()
         {
-            vec3 dir = rayDirection(45.0, u_resolution.xy, gl_FragCoord.xy);
+            vec2 mo = u_resolution.xy + u_mouse.xy;
+            vec3 dir = rayDirection(45.0, mo, gl_FragCoord.xy);
             vec3 ro = vec3(0.0, 0.0, 5.0);
             float dist = shortestDistanceToSurface(ro, dir, MIN_DIST, MAX_DIST);
             
@@ -160,10 +161,13 @@
 
     <script>
         var container;
-        var camera, scene, renderer;
+        var camera, scene, renderer, controls;
         var clock;
         var uniforms;
-        var mouse = { x: 0, y: 0 };
+        var mouse = {
+            x: 0,
+            y: 0
+        };
 
         document.onmousemove = getMouseXY;
 
@@ -179,7 +183,8 @@
             container = document.getElementById('container');
 
             camera = new THREE.Camera();
-            camera.position.z = 1;
+            camera.position.y = 20;
+            camera.position.z = 100;
 
             scene = new THREE.Scene();
 
@@ -187,9 +192,18 @@
             clock = new THREE.Clock();
             clock.start();
             uniforms = {
-                u_time: { type: "f", value: clock.elapsedTime },
-                u_mouse: { type: "v2", value: new THREE.Vector2() },
-                u_resolution: { type: "v2", value: new THREE.Vector2() }
+                u_time: {
+                    type: "f",
+                    value: clock.elapsedTime
+                },
+                u_mouse: {
+                    type: "v2",
+                    value: new THREE.Vector2()
+                },
+                u_resolution: {
+                    type: "v2",
+                    value: new THREE.Vector2()
+                }
             };
             var material = new THREE.ShaderMaterial({
                 uniforms: uniforms,
@@ -203,6 +217,13 @@
             renderer = new THREE.WebGLRenderer();
             renderer.setPixelRatio(window.devicePixelRatio);
 
+            controls = new THREE.OrbitControls( camera, renderer.domElement );
+
+            controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+            controls.dampingFactor = 0.25;
+            controls.screenSpacePanning = false;
+            controls.minDistance = 100;
+            controls.maxDistance = 500;
             container.appendChild(renderer.domElement);
 
             onWindowResize();
@@ -217,6 +238,7 @@
 
         function animate() {
             requestAnimationFrame(animate);
+            controls.update();
             render();
         }
 
