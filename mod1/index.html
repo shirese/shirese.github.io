@@ -16,15 +16,87 @@
 
 <body>
 	<script type="x-shader/x-vertex" id="vertexshader">
+		
+		uniform float iTime;
+		
+		float c_x0 = 0.0 / 3.0;
+		float c_x1 = 1.0 / 3.0;
+		float c_x2 = 2.0 / 3.0;
+		float c_x3 = 3.0 / 3.0;
+
+		float scale = 0.25;
+		float offset = 0.5;
+
+		float CP00() { return (sin(iTime*0.30) * 0.5 + 0.5) * scale + offset; }
+		float CP01() { return (sin(iTime*0.10) * 0.5 + 0.5) * scale + offset; }
+		float CP02() { return (sin(iTime*0.70) * 0.5 + 0.5) * scale + offset; }
+		float CP03() { return (sin(iTime*0.52) * 0.5 + 0.5) * scale + offset; }
+
+		float CP10() { return (sin(iTime*0.20) * 0.5 + 0.5) * scale + offset; }
+		float CP11() { return (sin(iTime*0.40) * 0.5 + 0.5) * scale + offset; }
+		float CP12() { return (sin(iTime*0.80) * 0.5 + 0.5) * scale + offset; }
+		float CP13() { return (sin(iTime*0.61) * 0.5 + 0.5) * scale + offset; }
+
+		float CP20() { return (sin(iTime*0.50) * 0.5 + 0.5) * scale + offset; }
+		float CP21() { return (sin(iTime*0.90) * 0.5 + 0.5) * scale + offset; }
+		float CP22() { return (sin(iTime*0.60) * 0.5 + 0.5) * scale + offset; }
+		float CP23() { return (sin(iTime*0.32) * 0.5 + 0.5) * scale + offset; }
+
+		float CP30() { return (sin(iTime*0.27) * 0.5 + 0.5) * scale + offset; }
+		float CP31() { return (sin(iTime*0.64) * 0.5 + 0.5) * scale + offset; }
+		float CP32() { return (sin(iTime*0.18) * 0.5 + 0.5) * scale + offset; }
+		float CP33() { return (sin(iTime*0.95) * 0.5 + 0.5) * scale + offset; }
+
+		float CubicLagrange (float A, float B, float C, float D, float t)
+		{
+			return
+				A * 
+				(
+					(t - c_x1) / (c_x0 - c_x1) * 
+					(t - c_x2) / (c_x0 - c_x2) *
+					(t - c_x3) / (c_x0 - c_x3)
+				) +
+				B * 
+				(
+					(t - c_x0) / (c_x1 - c_x0) * 
+					(t - c_x2) / (c_x1 - c_x2) *
+					(t - c_x3) / (c_x1 - c_x3)
+				) +
+				C * 
+				(
+					(t - c_x0) / (c_x2 - c_x0) * 
+					(t - c_x1) / (c_x2 - c_x1) *
+					(t - c_x3) / (c_x2 - c_x3)
+				) +
+				D * 
+				(
+					(t - c_x0) / (c_x3 - c_x0) * 
+					(t - c_x1) / (c_x3 - c_x1) *
+					(t - c_x2) / (c_x3 - c_x2)
+				);
+		}
+		
+		float CubicLagrangePatch(float u, float v)
+		{
+			
+			float CP0X = CubicLagrange(CP00(), CP01(), CP02(), CP03(), u);
+			float CP1X = CubicLagrange(CP10(), CP11(), CP12(), CP13(), u);
+			float CP2X = CubicLagrange(CP20(), CP21(), CP22(), CP23(), u);
+			float CP3X = CubicLagrange(CP30(), CP31(), CP32(), CP33(), u);
+			return CubicLagrange(CP0X, CP1X, CP2X, CP3X, v);
+		}
+
 		void main() {
-			gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+			vec3 newPos = position * CubicLagrangePatch(position.x, position.z);
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(newPos, 1.0);
 		}
 
 	</script>
 
 	<script type="x-shader/x-fragment" id="fragmentshader">
+		uniform float iTime;
 		void main() {
-			gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);
+			gl_FragColor = vec4(0.7, 0.0, 0.4, 1.0);
 		}
 	</script>
 
@@ -33,6 +105,7 @@
 	<script>
 		var aspect, camera, scene, renderer, plane, cylinder;
 		var D;
+		var clock;
 		var mesh;
 		var mouse;
 		var baseposy;
@@ -41,6 +114,7 @@
 		animate();
 
 		function init() {
+			clock = new THREE.Clock;
 			aspect = window.innerWidth / window.innerHeight;
 			D = 1;
 
@@ -50,21 +124,22 @@
 
 			var vertex;
 			var color = new THREE.Color();
-			var geometry = new THREE.PlaneBufferGeometry(10, 10, 40);
+			var geometry = new THREE.PlaneBufferGeometry( 10, 10, 10, 10 );
 			// var geometry = new THREE.SphereBufferGeometry( 5, 32, 32 );
-			// geometry.addAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
+			// var geometry = new THREE.SphereBufferGeometry( 5, 32, 32 );
+			
+			var material = new THREE.ShaderMaterial({
+				vertexShader: document.getElementById('vertexshader').textContent,
+				fragmentShader: document.getElementById('fragmentshader').textContent,
+				uniforms: {
+					iTime: { value: clock.getElapsedTime() }
+				}
+			});
 
-			// var material = new THREE.ShaderMaterial({
-			// 	vertexShader: document.getElementById('vertexshader').textContent,
-			// 	fragmentShader: document.getElementById('fragmentshader').textContent
-			// });
-
-			var material = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
-
-			sphereMesh = new THREE.Mesh(geometry, material);
+			planeMesh = new THREE.Mesh(geometry, material);
 			renderer = new THREE.WebGLRenderer();
-			scene.add(sphereMesh);
-			sphereMesh.position.set(0, 0, -20);
+			scene.add(planeMesh);
+			planeMesh.position.set(0, 0, -20);
 
 			scene.add(new THREE.AmbientLight(0x4000ff));
 
@@ -107,8 +182,9 @@
 
 		function animate() {
 			requestAnimationFrame(animate);
-			sphereMesh.rotation.x = mouse.y + (mouse.y * 0.578);
-			sphereMesh.rotation.z = mouse.y + (mouse.y * 0.578);
+			planeMesh.rotation.x = mouse.y + (mouse.y * 0.578);
+			planeMesh.rotation.z = mouse.y + (mouse.y * 0.578);
+			planeMesh.material.uniforms.iTime.value = clock.getElapsedTime();
 			// plane.rotation.x = mouse.y;
 			// console.log(plane.rotation.x);
 			renderer.render(scene, camera);
