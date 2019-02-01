@@ -6,11 +6,34 @@ precision highp float;
 uniform vec2 u_mouse;
 uniform vec2 u_resolution;
 uniform float u_time;
-uniform float u_au_freq;
+uniform float u_au_data[64];
 
 out vec4 fragColor;
 
 //------------------------------------------------------------------
+
+vec3 doBump( in vec3 pos, in vec3 nor, in float signal, in float scale )
+{
+    // build frame	
+    vec3  s = dFdx( pos );
+    vec3  t = dFdy( pos );
+    vec3  u = cross( t, nor );
+    vec3  v = cross( nor, s );
+    float d = dot( s, u );
+
+    // compute bump	
+    float bs = dFdx( signal );
+    float bt = dFdy( signal );
+	
+    // offset normal	
+#if 1
+	return normalize( nor - scale*(bs*u + bt*v)/d );
+#else
+    // if you cannot ensure the frame is not null	
+	vec3 vSurfGrad = sign( d ) * ( bs * u + bt * v );
+    return normalize( abs(d)*nor - scale*vSurfGrad );
+#endif
+}
 
 float sdPlane( vec3 p )
 {
@@ -261,8 +284,11 @@ vec3 opTwist( vec3 p )
 
 vec2 map( in vec3 pos )
 {
-    vec2 res = opU( vec2( sdPlane(     pos), 1.0 ),
-	                vec2( sdSphere(    pos-vec3( 0.0,0.25, 0.0), 0.25 ), 46.9 ) );
+    vec2 res = vec2( sdSphere(    pos-vec3( 0.0,0.25, 0.0), 0.25 ), 46.9 );
+    float displacement = sin(2.0 * pos.x) * sin(2.0 * pos.y) * sin(2.0 * pos.z);
+    res.x += displacement;
+    //vec2 res = opU( vec2( sdPlane(     pos), 1.0 ),
+	                //vec2( sdSphere(    pos-vec3( 0.0,0.25, 0.0), 0.25 ), 46.9 ) );
     //res = opU( res, vec2( sdBox(       pos-vec3( 1.0,0.25, 0.0), vec3(0.25) ), 3.0 ) );
     //res = opU( res, vec2( sdRoundBox(  pos-vec3( 1.0,0.25, 1.0), vec3(0.15), 0.1 ), 41.0 ) );
 	//res = opU( res, vec2( sdTorus(     pos-vec3( 0.0,0.25, 1.0), vec2(0.20,0.05) ), 25.0 ) );
@@ -382,15 +408,16 @@ float checkersGradBox( in vec2 p )
 
 vec3 render( in vec3 ro, in vec3 rd )
 { 
-    vec3 col = vec3(0.7, 0.9, 1.0) +rd.y*0.8;
+    float bump = smoothstep( -0.9, -0.6, cos( 0.5 * u_time ) );
+    vec3 col = vec3(0.12, 0.12, 0.15) +rd.y*0.8;
     vec2 res = castRay(ro,rd);
     float t = res.x;
 	float m = res.y;
     if( m>-0.5 )
     {
         vec3 pos = ro + t*rd;
-        pos += 0.001 * u_au_freq;
         vec3 nor = calcNormal( pos );
+        // nor = doBump( pos, nor, sin(20.0*pos.x)*sin(20.0*pos.y)*sin(20.0*pos.z), 1.0 );
         vec3 ref = reflect( rd, nor );
         
         // material        
