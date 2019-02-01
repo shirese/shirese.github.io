@@ -88,7 +88,7 @@
                 },
                 u_au_data: {
                     type: "f",
-                    value: [0.0]
+                    value: 0.0
                 }
             };
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 10);
@@ -173,7 +173,7 @@
 
         function render() {
             analyser.getFrequencyData(analyser.data);
-            uniforms.u_au_data.value = analyser.data;
+            uniforms.u_au_data.value = analyser.getAverageFrequency;
             uniforms.u_time.value = clock.getElapsedTime();
             if (mouseDown == true) {
                 uniforms.u_mouse.value.x = mouse.x;

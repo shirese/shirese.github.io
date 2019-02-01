@@ -1,12 +1,12 @@
 #version 300 es
-#define AA 1   // make this 1 is your machine is too slow
+#define AA 2   // make this 1 is your machine is too slow
 
 precision highp float;
 
 uniform vec2 u_mouse;
 uniform vec2 u_resolution;
 uniform float u_time;
-uniform float u_au_data[64];
+uniform float u_au_data;
 
 out vec4 fragColor;
 
@@ -285,7 +285,9 @@ vec3 opTwist( vec3 p )
 vec2 map( in vec3 pos )
 {
     vec2 res = vec2( sdSphere(    pos-vec3( 0.0,0.25, 0.0), 0.25 ), 46.9 );
-    float displacement = sin(2.0 * pos.x) * sin(2.0 * pos.y) * sin(2.0 * pos.z);
+    float displacement = 0.0;
+
+    displacement = sin(2.0 * pos.x ) * sin(2.0 * pos.z);
     res.x += displacement;
     //vec2 res = opU( vec2( sdPlane(     pos), 1.0 ),
 	                //vec2( sdSphere(    pos-vec3( 0.0,0.25, 0.0), 0.25 ), 46.9 ) );
@@ -417,7 +419,7 @@ vec3 render( in vec3 ro, in vec3 rd )
     {
         vec3 pos = ro + t*rd;
         vec3 nor = calcNormal( pos );
-        // nor = doBump( pos, nor, sin(20.0*pos.x)*sin(20.0*pos.y)*sin(20.0*pos.z), 1.0 );
+        nor = doBump( pos, nor, sin(20.0*pos.x)*sin(20.0*pos.y)*sin(20.0*pos.z), 1.0 );
         vec3 ref = reflect( rd, nor );
         
         // material        
